@@ -106,7 +106,7 @@ for t = simtime
     
     if mod(ti, nsecs/2) == 0
 	disp(['time: ' num2str(t,3) '.']);
-	subplot 211;
+	subplot(2,1,1);
 	plot(simtime, ft, 'linewidth', linewidth, 'color', 'green');
 	hold on;
 	plot(simtime, zt, 'linewidth', linewidth, 'color', 'red');
@@ -117,7 +117,7 @@ for t = simtime
 	legend('f', 'z', 'y');
 	hold off;
 	
-	subplot 212;
+	subplot(2,1,2);
 	plot(simtime, wo_len, 'linewidth', linewidth); 
 	hold on;
 	plot(simtime, wc_len, 'linewidth', linewidth, 'color', 'green'); 
@@ -193,7 +193,7 @@ disp(['Testing MAE: ' num2str(error_avg,3)]);
 
 
 figure;
-subplot 211;
+subplot(2,1,1);
 plot(simtime, ft, 'linewidth', linewidth, 'color', 'green');
 hold on;
 plot(simtime, zt, 'linewidth', linewidth, 'color', 'red');
@@ -206,7 +206,7 @@ ylabel('f, z and y', 'fontsize', fontsize, 'fontweight', fontweight);
 legend('f', 'z', 'y');
 
 
-subplot 212;
+subplot(2,1,2);
 hold on;
 plot(simtime2, ft2, 'linewidth', linewidth, 'color', 'green'); 
 plot(simtime2, zpt, 'linewidth', linewidth, 'color', 'red');
