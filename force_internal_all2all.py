@@ -1,5 +1,5 @@
 """
-FORCE_INTERNAL_ALL2ALL.m
+FORCE_INTERNAL_ALL2ALL.py
 
 This function generates the sum of 4 sine waves in figure 2D using the arcitecture of figure 1C (all-to-all
 connectivity) with the RLS learning rule.  The all-2-all connectivity allows a large optimization, in that we can
