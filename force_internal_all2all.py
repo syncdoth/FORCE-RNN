@@ -25,7 +25,6 @@ class HP:
     do_plot = True
     linewidth = 3
     fontsize = 14
-    fontweight = 'bold'
 
     # main params
     N = 1000  # number of neurons
@@ -35,7 +34,9 @@ class HP:
     learn_every = 2  # iterations to update weight.
     nRec2Out = N  # number of neurons that account for output
 
-    amp = 0.7  # amp lower because wf is implied as all ones, which is half the strength of wf.
+    # amp lower because wf is implied as all ones, which is half the strength of
+    # wf.
+    amp = 0.7
     freq = 1 / 60
 
     nsecs = 1440  # number of seconds. Determines iteration of the training.
@@ -52,6 +53,8 @@ class HP:
 
 
 class all2all:
+    """A network where all neurons are interconnected."""
+
     def __init__(self, N, p, g, alpha, learn_every, nRec2Out, simtime_len):
         self.N = N
         self.alpha = alpha
@@ -72,6 +75,11 @@ class all2all:
 
 
     def _simulate(self, x, rate, dt):
+        """simulate the network at each timestep.
+
+        essentially, the feedback signal x goes through the neurons, and
+        gets modified. This is used to calculate firing rate, r(t).
+        """
         x = (1.0 - dt) * x + self.M @ (rate * dt)  # [N, 1]
         rate = np.tanh(x)  # [N, 1]
         # NOTE: Originally complex conjugate transpose, but we are dealing with
@@ -83,7 +91,8 @@ class all2all:
 
 
     def _update(self, rate, z, ft, ti):
-        # update inverse correlation matrix
+        """update inverse correlation matrix and readout weight."""
+        # Equation (5) in the paper.
         k = self.P @ rate  # [N, 1]
         rPr = rate.T @ k  # [1, 1]
         c = 1.0 / (1.0 + rPr[0][0])
