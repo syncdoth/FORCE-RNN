@@ -96,13 +96,13 @@ class all2all:
         k = self.P @ rate  # [N, 1]
         rPr = rate.T @ k  # [1, 1]
         c = 1.0 / (1.0 + rPr[0][0])
-        self.P = self.P - k @ (k.T * c)  # [N, N] - [N, N] = [N, N]
+        self.P = self.P - k @ (rate.T @ self.P * c)  # [N, N] - [N, N] = [N, N]  # weird
 
         # update the error for the linear readout
         e = z - ft[ti]
 
         # update the output weights
-        self.dw = -e * k * c  # [N, 1]
+        self.dw = -e * self.P @ rate  # [N, 1]  # weird
         self.wo = self.wo + self.dw  # [N, 1]
 
         # update the internal weight matrix using the output's error
@@ -197,7 +197,6 @@ def main():
 
     if HP.do_plot:
         fig, axs = plt.subplots(2, figsize=(10, 10))
-        fig
         line1, = axs[0].plot(simtime, ft, linewidth=HP.linewidth, color='green')
         axs[0].set_title('training', fontsize=HP.fontsize)
         axs[0].set_xlabel('time', fontsize=HP.fontsize)
