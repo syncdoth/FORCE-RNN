@@ -99,7 +99,7 @@ class TaskPerforming(Network):
     def _update_J(self, J_D, x_D, u, target):
         e = self.J @ self.H(self.x) - J_D @ self.H(x_D) - u * target
         # update the output weights
-        dJ = -e * self.P_J @ self.H(self.x)  # [N, 1]
+        dJ = -e.T @ self.P_J @ self.H(self.x)  # [1, 1]
         self.J += dJ
 
     def _update(self, target, target_net):
