@@ -96,13 +96,15 @@ class all2all:
         k = self.P @ rate  # [N, 1]
         rPr = rate.T @ k  # [1, 1]
         c = 1.0 / (1.0 + rPr[0][0])
-        self.P = self.P - k @ (rate.T @ self.P * c)  # [N, N] - [N, N] = [N, N]  # weird
+        self.P = self.P - k @ (k.T * c)  # True if self.P == self.P.T
+        # self.P -= k @ (rate.T @ self.P * c)
 
         # update the error for the linear readout
         e = z - ft[ti]
 
         # update the output weights
-        self.dw = -e * self.P @ rate  # [N, 1]  # weird
+        self.dw = -e * k * c  # [N, 1]  # possibly wrong: -e * self.P @ rate
+        # self.dw = -e *self.P @ rate
         self.wo = self.wo + self.dw  # [N, 1]
 
         # update the internal weight matrix using the output's error
