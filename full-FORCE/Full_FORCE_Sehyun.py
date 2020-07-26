@@ -63,7 +63,7 @@ class RNN:
             self.input_weights: weight for inputs; the inputs consist of
             f_in, f_out, and f_hint. [num_inputs, N]
             self.J: strength of synapses. [N, N]
-            self.w: readout unit weight. [1, N]
+            self.w: readout unit weight. [N, 1]
             self.bias: bias to the activity. [1, N]
             self.x: Initializes the activity of the network [1, N]
         """
@@ -153,6 +153,7 @@ class RNN:
         hp = self.hp
         self.initialize_act()
         N = hp['network_size']
+        # Initialize to zero for training.
         self.J = np.zeros((N, N))
         self.w = np.zeros((self.w.shape))
 
@@ -174,12 +175,12 @@ class RNN:
         DRNN = RNN(hyperparameters=self.hp,
                    num_inputs=D_num_total_inps,
                    num_outputs=1)
-        w_targ = np.transpose(
+        w_targ = np.transpose(  # [N, 1]
             DRNN.input_weights[D_num_inputs:(D_num_inputs + D_num_targs), :])
-        w_hint = np.transpose(
+        w_hint = np.transpose(  # [N, 1]
             DRNN.input_weights[(D_num_inputs +
                                 D_num_targs):D_num_total_inps, :])
-        Jd = np.transpose(DRNN.J)
+        Jd = np.transpose(DRNN.J)  # [N, N]
 
         ################### Monitor training with these variables:
         J_err_ratio = []
@@ -223,9 +224,9 @@ class RNN:
                 z = []  # RNN output
                 for t in range(len(inp)):
                     # Run both RNNs forward and get the activity. Record activity for potential plotting
-                    dx_t = DRNN.run(D_total_inp[t:(t + 1), :],
+                    dx_t = DRNN.run(D_total_inp[t:t + 1, :],
                                     record_flag=1)[1][:, 0:5]
-                    z_t, x_t = self.run(inp[t:(t + 1), :], record_flag=1)
+                    z_t, x_t = self.run(inp[t:t + 1, :], record_flag=1)
 
                     dx.append(np.squeeze(np.tanh(dx_t) + np.arange(5) * 2))
                     z.append(np.squeeze(z_t))
@@ -234,34 +235,37 @@ class RNN:
 
                     if npr.rand() < (1 / hp['ff_steps_per_update']):
                         # Extract relevant values
-                        r = np.transpose(np.tanh(self.x))
-                        rd = np.transpose(np.tanh(DRNN.x))
-                        J = np.transpose(self.J)
-                        w = np.transpose(self.w)
+                        r = np.tanh(self.x).T  # [N, 1]
+                        rd = np.tanh(DRNN.x).T # [N, 1]
+                        J = self.J.T           # [N, N]
+                        w = self.w.T           # [1, N]
 
                         # Now for the RLS algorithm:
                         # Compute errors
-                        J_err = (J @ r - Jd @ rd -
-                                 (w_targ @ targ[t:(t + 1), :].T) -
-                                 (w_hint @ hints[t:(t + 1), :].T))
-                        w_err = w @ r - targ[t:(t + 1), :].T
+                        J_err = (J @ r - Jd @ rd -  # [N, 1]
+                                 (w_targ @ targ[t:t + 1, :].T) -
+                                 (w_hint @ hints[t:t + 1, :].T))
+                        w_err = w @ r - targ[t:t + 1, :].T
 
                         # Compute the gain (k) and running estimate of the inverse correlation matrix
                         Pr = P @ r
+                        # Originally, k is not transposed. I think this is done
+                        # to match the dimension when calculating the update
+                        # terms.
                         k = Pr.T / (1 + r.T @ Pr)
                         P = P - Pr @ k
 
                         # Update weights
-                        w = w - np.dot(w_err, k)
-                        J = J - np.dot(J_err, k)
-                        self.J = np.transpose(J)
-                        self.w = np.transpose(w)
+                        w = w - w_err @ k  # [1, 1] @ [1, 300] = [1, 300]
+                        J = J - J_err @ k  # [300, 1] @ [1, 300] = [300, 300]
+                        self.J = J.T
+                        self.w = w.T
 
                         if monitor_training == 1:
                             J_err_plus = (
-                                np.dot(J, r) - np.dot(Jd, rd) -
-                                np.dot(w_targ, targ[t:(t + 1), :].T) -
-                                np.dot(w_hint, hints[t:(t + 1), :].T))
+                                J @ r - Jd @ rd -
+                                w_targ @ targ[t:t + 1, :].T -
+                                w_hint @ hints[t:t + 1, :].T)
                             J_err_ratio = np.hstack(
                                 (J_err_ratio,
                                  np.squeeze(np.mean(J_err_plus / J_err))))
@@ -270,7 +274,7 @@ class RNN:
                             J_norm = np.hstack(
                                 (J_norm, np.squeeze(np.linalg.norm(J))))
 
-                            w_err_plus = np.dot(w, r) - targ[t:(t + 1), :].T
+                            w_err_plus = w @ r - targ[t:t + 1, :].T
                             w_err_ratio = np.hstack(
                                 (w_err_ratio, np.squeeze(w_err_plus / w_err)))
                             w_err_mag = np.hstack(
@@ -427,8 +431,8 @@ class RNN:
             ax.set_title('RNN Testing, trial %g' % (idx + 1))
             test_fig.canvas.draw()
 
-            E_out = E_out + np.dot(np.transpose(out - targ), out - targ)
-            V_targ = V_targ + np.dot(np.transpose(targ), targ)
+            E_out = E_out + (out - targ).T @ (out - targ)
+            V_targ = V_targ + targ.T @ targ
         print('')
         E_norm = E_out / V_targ
         print('Normalized error: %g' % E_norm)
